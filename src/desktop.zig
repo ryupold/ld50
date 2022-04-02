@@ -53,6 +53,7 @@ pub fn main() anyerror!void {
         game.deinit();
     }
 
+    if (@import("builtin").mode == .Debug) r.SetWindowPosition(500, -1000);
     try myGame.start(game.getECS());
 
     r.SetTargetFPS(60);

@@ -1,0 +1,9 @@
+{
+  "blackboardRect": { "x": -100, "y": -265, "width": 300, "height": 70 },
+  "studentTables": {
+    "rows": 4,
+    "columns": 4,
+    "area": { "x": -200, "y": -100, "width": 348, "height": 308 },
+    "margin": 40
+  }
+}
