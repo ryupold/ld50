@@ -8,6 +8,7 @@ const CameraSystem = zecsi.baseSystems.CameraSystem;
 const AssetSystem = zecsi.baseSystems.AssetSystem;
 const AssetLink = zecsi.assets.AssetLink;
 const r = zecsi.raylib;
+const drawTexture = @import("utils.zig").drawTexture;
 
 pub const RoomConfig = struct {
     blackboardRect: r.Rectangle,
@@ -29,6 +30,7 @@ pub const ClassRoomSystem = struct {
     camera: *CameraSystem,
     assets: *AssetSystem,
     groudTex: *AssetLink,
+    wallTex: *AssetLink,
     blackboardTex: *AssetLink,
     studentTableTex: *AssetLink,
     roomConfigLink: *AssetLink,
@@ -41,6 +43,7 @@ pub const ClassRoomSystem = struct {
             .assets = ass,
             .camera = ecs.getSystem(CameraSystem).?,
             .groudTex = try ass.loadTexture("assets/images/class/ground.png"),
+            .wallTex = try ass.loadTexture("assets/images/class/wall.png"),
             .blackboardTex = try ass.loadTexture("assets/images/class/blackboard.png"),
             .studentTableTex = try ass.loadTexture("assets/images/class/student_table_and_chair.png"),
             .roomConfigLink = try ass.loadJson("assets/data/room_config.json"),
@@ -56,7 +59,7 @@ pub const ClassRoomSystem = struct {
             log.err("cannot load room config: {?}", .{err});
             return;
         };
-        try self.drawGround();
+        try self.drawBaseRoom();
         try self.drawBlackboard();
         try self.drawStudentChairs();
     }
@@ -90,25 +93,24 @@ pub const ClassRoomSystem = struct {
         drawTexture(tex, self.roomConfig.blackboardRect);
     }
 
-    pub fn drawGround(self: *@This()) !void {
-        const tex = self.groudTex.asset.Texture;
+    pub fn drawBaseRoom(self: *@This()) !void {
         drawTexture(
-            tex,
+            self.groudTex.asset.Texture,
             r.Rectangle{
-                .x = -self.ecs.window.size.x / 2,
-                .y = -self.ecs.window.size.y / 2,
+                .x = 0,
+                .y = 0,
                 .width = self.ecs.window.size.x,
                 .height = self.ecs.window.size.y,
             },
         );
-    }
-
-    fn drawTexture(tex: r.Texture2D, dest: r.Rectangle) void {
-        r.DrawTexturePro(tex, r.Rectangle{
-            .x = 0,
-            .y = 0,
-            .width = @intToFloat(f32, tex.width),
-            .height = @intToFloat(f32, tex.height),
-        }, dest, r.Vector2.zero(), 0, r.WHITE);
+        drawTexture(
+            self.wallTex.asset.Texture,
+            r.Rectangle{
+                .x = 0,
+                .y = 0,
+                .width = self.ecs.window.size.x,
+                .height = self.ecs.window.size.y,
+            },
+        );
     }
 };

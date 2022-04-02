@@ -1,0 +1,8 @@
+{
+  "position": { "x": 100, "y": -225 },
+  "size": 50,
+  "handSizeMax": 75,
+  "startStress": 0.75,
+  "stressFreq": 100,
+  "timeToEnd": 60
+}
