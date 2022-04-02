@@ -5,6 +5,7 @@ const raylib = zecsi.raylib;
 
 const example = @import("tree_system.zig");
 const StartScreenSystem = @import("start_screen_system.zig").StartScreenSystem;
+const ClassRoomSystem = @import("class_room_system.zig").ClassRoomSystem;
 
 pub fn start(ecs: *ECS) !void {
     const allocator = ecs.allocator;
@@ -19,7 +20,7 @@ pub fn start(ecs: *ECS) !void {
     cameraSystem.initTouchZoomAndDrag(base.TwoFingerZoomAndDrag{ .factor = 0.5 });
     
     //register your systems here
-    _ = try ecs.registerSystem(StartScreenSystem);
+    _ = try ecs.registerSystem(ClassRoomSystem);
     // _ = try ecs.registerSystem(example.TreeSystem);
     
 }

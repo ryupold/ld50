@@ -5,6 +5,8 @@ const game = zecsi.game;
 const log = zecsi.log;
 const r = zecsi.raylib;
 const ZecsiAllocator = zecsi.ZecsiAllocator;
+const gameConfig = @import("game_config.zig");
+const myGame = @import("game.zig");
 
 const updateWindowSizeEveryNthFrame = 30;
 
@@ -29,30 +31,39 @@ pub fn main() anyerror!void {
     log.info("current path: {s}", .{cwd});
 
     //remove to prevent resizing of window
-    r.SetConfigFlags(.FLAG_WINDOW_RESIZABLE);
+    if (gameConfig.resizable) r.SetConfigFlags(.FLAG_WINDOW_RESIZABLE);
     var frame: usize = 0;
-    var lastWindowSize: struct { w: u32 = 0, h: u32 = 0 } = .{};
+    var lastWindowSize: struct { w: i32 = 0, h: i32 = 0 } = .{};
 
     // game start/stop
-    log.info("starting game...", .{});
-    try game.init(allocator, .{ .cwd = cwd });
-
-    try @import("game.zig").start(game.getECS());
-
+    log.info("starting game [{d}x{d}]", .{
+        gameConfig.windowSize.width,
+        gameConfig.windowSize.height,
+    });
+    try game.init(allocator, .{
+        .gameName = gameConfig.name,
+        .cwd = cwd,
+        .initialWindowSize = .{
+            .width = gameConfig.windowSize.width,
+            .height = gameConfig.windowSize.height,
+        },
+    });
     defer {
         log.info("stopping game...", .{});
         game.deinit();
     }
 
+    try myGame.start(game.getECS());
+
     r.SetTargetFPS(60);
 
     while (!r.WindowShouldClose()) {
         if (frame % updateWindowSizeEveryNthFrame == 0) {
-            const newW = @intCast(u32, r.GetScreenWidth());
-            const newH = @intCast(u32, r.GetScreenHeight());
+            const newW = r.GetScreenWidth();
+            const newH = r.GetScreenHeight();
             if (newW != lastWindowSize.w or newH != lastWindowSize.h) {
                 log.debug("changed screen size {d}x{x}", .{ newW, newH });
-                game.setWindowSize(@intCast(usize, newW), @intCast(usize, newH));
+                game.setWindowSize(newW, newH);
                 lastWindowSize.w = newW;
                 lastWindowSize.h = newH;
             }

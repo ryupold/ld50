@@ -1,7 +1,7 @@
 const std = @import("std");
 const fs = std.fs;
 
-pub const APP_NAME = "zecsi-examples";
+pub const APP_NAME = "tick-tack";
 
 const raylibSrc = "src/zecsi/raylib/src/";
 const zesciSrc = "src/zecsi/";
