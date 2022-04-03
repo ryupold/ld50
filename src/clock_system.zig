@@ -39,7 +39,7 @@ pub const ClockSystem = struct {
             .clockHandTex = try ass.loadTexture("assets/images/class/clock_hand.png"),
             .config = try ass.loadJsonObject(ClockConfig, "assets/data/clock_config.json"),
         };
-        system.timePassed.time = system.config.get().timeToEnd;
+        // system.timePassed.time = system.config.get().timeToEnd;
         return system;
     }
 
@@ -113,8 +113,8 @@ pub const ClockSystem = struct {
     fn checkTimerConfig(self: *Self) ClockConfig {
         const config = self.config.get();
         const needsUpdate = self.configModTime != self.config.modTime;
-        defer self.configModTime = self.configModTime;
         if (needsUpdate) {
+            self.configModTime = self.config.modTime;
             self.timePassed.time = config.timeToEnd;
             self.timePassed.reset();
         }
