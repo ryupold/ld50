@@ -33,7 +33,7 @@ pub const RoomConfig = struct {
     },
 };
 
-const RoomGrid = std.AutoHashMap(GridPosition, EntityID);
+pub const RoomGrid = std.AutoHashMap(GridPosition, EntityID);
 
 pub const ClassRoomSystem = struct {
     ecs: *ECS,
