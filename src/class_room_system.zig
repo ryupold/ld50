@@ -13,19 +13,15 @@ const AssetLink = zecsi.assets.AssetLink;
 const JsonObject = zecsi.assets.JsonObject;
 const r = zecsi.raylib;
 const drawTexture = @import("utils.zig").drawTexture;
+const drawTextureOrigin = @import("utils.zig").drawTextureOrigin;
 
 pub const StudentTable = struct {
-    x: i32,
-    y: i32,
-    width: i32,
-    height: i32,
+    area: r.RectangleI,
 };
 
 pub const RoomConfig = struct {
     blackboardRect: r.Rectangle,
     studentTables: struct {
-        rows: i32,
-        columns: i32,
         area: struct {
             x: i32,
             y: i32,
@@ -72,7 +68,9 @@ pub const ClassRoomSystem = struct {
         return system;
     }
 
-    pub fn deinit(_: *@This()) void {}
+    pub fn deinit(self: *@This()) void {
+        self.roomGrid.deinit();
+    }
 
     pub fn update(self: *@This(), _: f32) !void {
         const config = self.roomConfig.get();
@@ -84,14 +82,21 @@ pub const ClassRoomSystem = struct {
         if (!self.hideGround) try self.drawBaseRoom();
         try self.drawBlackboard(config);
         try self.drawStudentChairs(config);
+        self.drawDebugRects();
 
         if (r.IsKeyReleased(r.KEY_B)) {
             self.hideGround = !self.hideGround;
+        }
+
+        if (r.IsMouseButtonReleased(0)) {
+            const wpos = self.camera.screenToWorld(r.GetMousePosition());
+            log.debug("click on {?}", .{self.grid.toGridPosition(wpos)});
         }
     }
 
     /// assuming that the config was loaded
     fn reinitRoom(self: *@This(), config: RoomConfig) !void {
+        log.debug("initialize room: {?}", .{config});
         //clear grid
         var kit = self.roomGrid.keyIterator();
         while (kit.next()) |pos| {
@@ -100,39 +105,67 @@ pub const ClassRoomSystem = struct {
             kit = self.roomGrid.keyIterator();
         }
 
-        //TODO: populate grid
-        _ = config;
+        //populate grid with entities{StudentTable}
+        const tables = config.studentTables;
+        var y: i32 = tables.area.y;
+        while (y < tables.area.height - tables.tableArea.y) : (y += tables.tableArea.y + tables.margin.y) {
+            var x: i32 = tables.area.x;
+            while (x < tables.area.width - tables.tableArea.x) : (x += tables.tableArea.x + tables.margin.x) {
+                const table = StudentTable{
+                    .area = .{
+                        .x = x,
+                        .y = y,
+                        .width = tables.tableArea.x,
+                        .height = tables.tableArea.y,
+                    },
+                };
+                var e = try self.ecs.create(.{table});
+                try self.putEntityOnGridArea(e.id, table.area);
+            }
+        }
     }
 
-    pub fn drawStudentChairs(self: *@This(), config: RoomConfig) !void {
+    pub fn drawStudentChairs(self: *@This(), _: RoomConfig) !void {
         const tex = self.studentTableTex.asset.Texture;
-        const tables = config.studentTables;
-        const areaPos = self.grid.toWorldPosition(.{ .x = tables.area.x, .y = tables.area.y })
-            .sub(.{ .x = self.grid.cellSize() / 2.0, .y = self.grid.cellSize() / 2.0 });
+        var it = self.ecs.query(.{StudentTable});
+        while (it.next()) |e| {
+            const table: *StudentTable = e.getData(self.ecs, StudentTable).?;
+            std.debug.assert(table.area.y <= table.area.y + table.area.height);
+            std.debug.assert(table.area.x <= table.area.x + table.area.width);
 
-        const tableSizeF: r.Vector2 = .{
-            .x = self.grid.toWorldLen(tables.tableArea.x),
-            .y = self.grid.toWorldLen(tables.tableArea.y),
-        };
+            const pos = self.grid.toWorldPositionEx(.{ .x = table.area.x, .y = table.area.y }, .{ .x = 0, .y = 0 });
+            const w = self.grid.toWorldLen(table.area.width);
+            const h = self.grid.toWorldLen(table.area.height);
 
-        var x: i32 = 0;
-        var y: i32 = 0;
-        var row: i32 = 0;
-        var col: i32 = 0;
-        while (row < tables.rows) : (row += 1) {
-            col = 0;
-            while (col < tables.columns) : (col += 1) {
-                var table = r.Rectangle{
-                    .x = self.grid.toWorldLen(x) + areaPos.x,
-                    .y = self.grid.toWorldLen(y) + areaPos.y,
-                    .width = tableSizeF.x,
-                    .height = tableSizeF.y,
-                };
-                drawTexture(tex, table);
-                x += tables.tableArea.x + tables.margin.x;
-            }
-            x = 0;
-            y += tables.tableArea.y + tables.margin.y;
+            // draw table texture
+            drawTextureOrigin(tex, .{
+                .x = pos.x,
+                .y = pos.y,
+                .width = w,
+                .height = h,
+            }, r.Vector2.zero());
+        }
+    }
+
+    fn drawDebugRects(self: *@This()) void {
+        var kit = self.roomGrid.keyIterator();
+        const padding: f32 = 3;
+        const cs = self.grid.cellSize();
+        while (kit.next()) |gpos| {
+            const pos = self.grid.toWorldPositionEx(gpos.*, .{ .x = 0, .y = 0 });
+            const rect = r.Rectangle{
+                .x = pos.x + padding,
+                .y = pos.y + padding,
+                .width = cs - padding * 2,
+                .height = cs - padding * 2,
+            };
+            const eid = self.roomGrid.get(gpos.*).?;
+            r.DrawRectanglePro(rect, r.Vector2.zero(), 0, r.WHITE.set(.{
+                .r = @truncate(u8, eid * 66),
+                .g = @truncate(u8, eid * 132),
+                .b = @truncate(u8, eid * 198),
+                .a = 70,
+            }));
         }
     }
 
@@ -160,5 +193,22 @@ pub const ClassRoomSystem = struct {
                 .height = self.ecs.window.size.y,
             },
         );
+    }
+
+    fn putEntityOnGridArea(self: *@This(), entity: EntityID, area: r.RectangleI) !void {
+        std.debug.assert(area.x <= area.x + area.width);
+        std.debug.assert(area.y <= area.y + area.height);
+
+        var count: usize = 0;
+        var y: i32 = area.y;
+        while (y < area.y + area.height) : (y += 1) {
+            var x: i32 = area.x;
+            while (x < area.x + area.width) : (x += 1) {
+                try self.roomGrid.put(.{ .x = x, .y = y }, entity);
+                count += 1;
+            }
+        }
+
+        log.debug("put #{d} on {?} occupying {d} cells", .{ entity, area, count });
     }
 };

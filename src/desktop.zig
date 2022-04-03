@@ -54,7 +54,7 @@ pub fn main() anyerror!void {
         game.deinit();
     }
 
-    if (builtin.mode == .Debug and builtin.os.tag == .macos) r.SetWindowPosition(500, -1000);
+    // if (builtin.mode == .Debug and builtin.os.tag == .macos) r.SetWindowPosition(500, -1000);
     try myGame.start(game.getECS());
 
     r.SetTargetFPS(60);
