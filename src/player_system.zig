@@ -27,7 +27,6 @@ pub const PlayerSystem = struct {
     grid: *GridPlacementSystem,
     playerTex: *AssetLink,
     player: EntityID,
-    previousTouchCount: i32 = 0,
 
     pub fn init(ecs: *ECS) !Self {
         var ass = ecs.getSystem(AssetSystem).?;
@@ -48,7 +47,6 @@ pub const PlayerSystem = struct {
     pub fn deinit(_: *Self) void {}
 
     pub fn update(self: *Self, _: f32) !void {
-        // self.updatePlayerPos();
         self.drawPlayer();
 
         const goto: ?r.Vector2 =
@@ -65,8 +63,6 @@ pub const PlayerSystem = struct {
             mover.target = self.grid.toGridPosition(clickPos);
             // log.debug("MOVER, goto: {?}", .{mover.target});
         }
-
-        self.previousTouchCount = r.GetTouchPointCount();
     }
 
     fn drawPlayer(self: *Self) void {
@@ -78,12 +74,5 @@ pub const PlayerSystem = struct {
             .width = cs,
             .height = cs,
         });
-    }
-
-    fn updatePlayerPos(self: *Self) void {
-        // var player: *Player = self.ecs.getOnePtr(self.player, Player).?;
-        // var mover: *move.GridMover = self.ecs.getOnePtr(self.player, move.GridMover).?;
-
-        _ = self;
     }
 };

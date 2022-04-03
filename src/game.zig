@@ -24,6 +24,7 @@ pub fn start(ecs: *ECS) !void {
     _ = try ecs.registerSystem(@import("class_room_system.zig").ClassRoomSystem);
     _ = try ecs.registerSystem(@import("clock_system.zig").ClockSystem);
     _ = try ecs.registerSystem(@import("player_system.zig").PlayerSystem);
+    _ = try ecs.registerSystem(@import("teacher_system.zig").TeacherSystem);
     _ = try ecs.registerSystem(@import("movement_system.zig").MovementSystem);
     _ = try ecs.registerSystem(@import("game_score_system.zig").GameScoreSystem);
     _ = try ecs.registerSystem(@import("debug_system.zig").DebugSystem);

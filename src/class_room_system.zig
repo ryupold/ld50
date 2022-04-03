@@ -47,6 +47,7 @@ pub const ClassRoomSystem = struct {
     studentTableTex: *AssetLink,
 
     hideGround: bool = false,
+    drawDebug: bool = false,
     roomConfigModTime: i128 = -1,
     roomConfig: JsonObject(RoomConfig),
 
@@ -82,10 +83,13 @@ pub const ClassRoomSystem = struct {
         if (!self.hideGround) try self.drawBaseRoom();
         try self.drawBlackboard(config);
         try self.drawStudentChairs(config);
-        self.drawDebugRects();
+        if (self.drawDebug) self.drawDebugRects();
 
         if (r.IsKeyReleased(r.KEY_B)) {
             self.hideGround = !self.hideGround;
+        }
+        if (r.IsKeyReleased(r.KEY_C)) {
+            self.drawDebug = !self.drawDebug;
         }
 
         if (r.IsMouseButtonReleased(0)) {
@@ -97,15 +101,16 @@ pub const ClassRoomSystem = struct {
     /// assuming that the config was loaded
     fn reinitRoom(self: *@This(), config: RoomConfig) !void {
         log.debug("initialize room: {?}", .{config});
-        //clear grid
-        var kit = self.roomGrid.keyIterator();
-        while (kit.next()) |pos| {
-            const table = self.roomGrid.fetchRemove(pos.*).?.value;
-            _ = try self.ecs.destroy(table);
-            kit = self.roomGrid.keyIterator();
-        }
 
-        //populate grid with entities{StudentTable}
+        try self.clearGrid();
+
+        try self.addStudentTables(config);
+
+        try self.addWalls(config);
+    }
+
+    ///populate grid with entities{StudentTable}
+    fn addStudentTables(self: *@This(), config: RoomConfig) !void {
         const tables = config.studentTables;
         var y: i32 = tables.area.y;
         while (y < tables.area.height - tables.tableArea.y) : (y += tables.tableArea.y + tables.margin.y) {
@@ -127,6 +132,38 @@ pub const ClassRoomSystem = struct {
                     .height = table.area.height - 1, //Make table collider 1 cell smaller so the player can walk up to another student
                 });
             }
+        }
+    }
+
+    fn addWalls(self: *@This(), config: RoomConfig) !void {
+        const wallEntity = try self.ecs.createEmpty();
+        const min = self.grid.toGridPosition(.{
+            .x = -self.ecs.window.size.x / 2,
+            .y = -self.ecs.window.size.y / 2,
+        }).add(.{ .x = 0, .y = 2 }); //with wall size as offset
+        const max = self.grid.toGridPosition(.{
+            .x = self.ecs.window.size.x / 2,
+            .y = self.ecs.window.size.y / 2,
+        }).add(.{ .x = 1, .y = 1 });
+        var y = min.y;
+        while (y < max.y) : (y += 1) {
+            var x = min.x;
+            while (x < max.x) : (x += 1) {
+                if (x > min.x and x < max.y - 1 and y > min.y and y < max.y - 1) continue;
+                try self.putEntityOnGridArea(wallEntity.id, .{ .x = x, .y = y, .width = 1, .height = 1 });
+            }
+        }
+        _ = self;
+        _ = config;
+    }
+
+    ///clear grid
+    fn clearGrid(self: *@This()) !void {
+        var kit = self.roomGrid.keyIterator();
+        while (kit.next()) |pos| {
+            const table = self.roomGrid.fetchRemove(pos.*).?.value;
+            _ = try self.ecs.destroy(table);
+            kit = self.roomGrid.keyIterator();
         }
     }
 
