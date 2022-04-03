@@ -10,6 +10,7 @@ const AssetSystem = zecsi.baseSystems.AssetSystem;
 const GridPosition = zecsi.baseSystems.GridPosition;
 const GridPlacementSystem = zecsi.baseSystems.GridPlacementSystem;
 const AssetLink = zecsi.assets.AssetLink;
+const JsonObject = zecsi.assets.JsonObject;
 const r = zecsi.raylib;
 const drawTexture = @import("utils.zig").drawTexture;
 
@@ -40,6 +41,7 @@ const RoomGrid = std.AutoHashMap(GridPosition, EntityID);
 
 pub const ClassRoomSystem = struct {
     ecs: *ECS,
+    roomGrid: RoomGrid,
     camera: *CameraSystem,
     assets: *AssetSystem,
     grid: *GridPlacementSystem,
@@ -47,10 +49,10 @@ pub const ClassRoomSystem = struct {
     wallTex: *AssetLink,
     blackboardTex: *AssetLink,
     studentTableTex: *AssetLink,
-    roomConfigLink: *AssetLink,
+
     hideGround: bool = false,
-    roomConfig: RoomConfig = undefined,
-    roomGrid: RoomGrid,
+    roomConfigModTime: i128 = -1,
+    roomConfig: JsonObject(RoomConfig),
 
     pub fn init(ecs: *ECS) !@This() {
         const ass = ecs.getSystem(AssetSystem).?;
@@ -64,10 +66,8 @@ pub const ClassRoomSystem = struct {
             .wallTex = try ass.loadTexture("assets/images/class/wall.png"),
             .blackboardTex = try ass.loadTexture("assets/images/class/blackboard.png"),
             .studentTableTex = try ass.loadTexture("assets/images/class/student_table_and_chair.png"),
-            .roomConfigLink = try ass.loadJson("assets/data/room_config.json"),
+            .roomConfig = try ass.loadJsonObject(RoomConfig, "assets/data/room_config.json"),
         };
-
-        system.roomConfig = try system.roomConfigLink.asset.Json.as(RoomConfig);
 
         return system;
     }
@@ -75,13 +75,15 @@ pub const ClassRoomSystem = struct {
     pub fn deinit(_: *@This()) void {}
 
     pub fn update(self: *@This(), _: f32) !void {
-        if (try self.roomConfigLink.check()) {
-            try self.reinitRoom();
+        const config = self.roomConfig.get();
+        if (self.roomConfigModTime != self.roomConfig.modTime) {
+            try self.reinitRoom(config);
+            self.roomConfigModTime = self.roomConfig.modTime;
         }
 
         if (!self.hideGround) try self.drawBaseRoom();
-        try self.drawBlackboard();
-        try self.drawStudentChairs();
+        try self.drawBlackboard(config);
+        try self.drawStudentChairs(config);
 
         if (r.IsKeyReleased(r.KEY_B)) {
             self.hideGround = !self.hideGround;
@@ -89,7 +91,7 @@ pub const ClassRoomSystem = struct {
     }
 
     /// assuming that the config was loaded
-    fn reinitRoom(self: *@This()) !void {
+    fn reinitRoom(self: *@This(), config: RoomConfig) !void {
         //clear grid
         var kit = self.roomGrid.keyIterator();
         while (kit.next()) |pos| {
@@ -99,27 +101,27 @@ pub const ClassRoomSystem = struct {
         }
 
         //TODO: populate grid
-
+        _ = config;
     }
 
-    pub fn drawStudentChairs(self: *@This()) !void {
+    pub fn drawStudentChairs(self: *@This(), config: RoomConfig) !void {
         const tex = self.studentTableTex.asset.Texture;
-        const config = self.roomConfig.studentTables;
-        const areaPos = self.grid.toWorldPosition(.{ .x = config.area.x, .y = config.area.y })
-            .sub(.{ .x = self.grid.cellSize / 2, .y = self.grid.cellSize / 2 });
+        const tables = config.studentTables;
+        const areaPos = self.grid.toWorldPosition(.{ .x = tables.area.x, .y = tables.area.y })
+            .sub(.{ .x = self.grid.cellSize() / 2.0, .y = self.grid.cellSize() / 2.0 });
 
         const tableSizeF: r.Vector2 = .{
-            .x = self.grid.toWorldLen(config.tableArea.x),
-            .y = self.grid.toWorldLen(config.tableArea.y),
+            .x = self.grid.toWorldLen(tables.tableArea.x),
+            .y = self.grid.toWorldLen(tables.tableArea.y),
         };
 
         var x: i32 = 0;
         var y: i32 = 0;
         var row: i32 = 0;
         var col: i32 = 0;
-        while (row < config.rows) : (row += 1) {
+        while (row < tables.rows) : (row += 1) {
             col = 0;
-            while (col < config.columns) : (col += 1) {
+            while (col < tables.columns) : (col += 1) {
                 var table = r.Rectangle{
                     .x = self.grid.toWorldLen(x) + areaPos.x,
                     .y = self.grid.toWorldLen(y) + areaPos.y,
@@ -127,16 +129,16 @@ pub const ClassRoomSystem = struct {
                     .height = tableSizeF.y,
                 };
                 drawTexture(tex, table);
-                x += config.tableArea.x + config.margin.x;
+                x += tables.tableArea.x + tables.margin.x;
             }
             x = 0;
-            y += config.tableArea.y + config.margin.y;
+            y += tables.tableArea.y + tables.margin.y;
         }
     }
 
-    pub fn drawBlackboard(self: *@This()) !void {
+    pub fn drawBlackboard(self: *@This(), config: RoomConfig) !void {
         const tex = self.blackboardTex.asset.Texture;
-        drawTexture(tex, self.roomConfig.blackboardRect);
+        drawTexture(tex, config.blackboardRect);
     }
 
     pub fn drawBaseRoom(self: *@This()) !void {

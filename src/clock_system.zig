@@ -8,6 +8,7 @@ const Timer = zecsi.utils.Timer;
 const CameraSystem = zecsi.baseSystems.CameraSystem;
 const AssetSystem = zecsi.baseSystems.AssetSystem;
 const AssetLink = zecsi.assets.AssetLink;
+const JsonObject = zecsi.assets.JsonObject;
 const GameScoreSystem = @import("game_score_system.zig").GameScoreSystem;
 const r = zecsi.raylib;
 const drawTexture = @import("utils.zig").drawTexture;
@@ -27,8 +28,8 @@ pub const ClockSystem = struct {
     timePassed: Timer = .{ .time = 0, .repeat = false },
     clockBgTex: *AssetLink,
     clockHandTex: *AssetLink,
-    configLink: *AssetLink,
-    config: ClockConfig = undefined,
+    configModTime: i128 = -1,
+    config: JsonObject(ClockConfig),
 
     pub fn init(ecs: *ECS) !Self {
         const ass = ecs.getSystem(AssetSystem).?;
@@ -36,42 +37,41 @@ pub const ClockSystem = struct {
             .ecs = ecs,
             .clockBgTex = try ass.loadTexture("assets/images/class/clock_background.png"),
             .clockHandTex = try ass.loadTexture("assets/images/class/clock_hand.png"),
-            .configLink = try ass.loadJson("assets/data/clock_config.json"),
+            .config = try ass.loadJsonObject(ClockConfig, "assets/data/clock_config.json"),
         };
-        system.config = try system.configLink.asset.Json.as(ClockConfig);
-        system.timePassed.time = system.config.timeToEnd;
+        system.timePassed.time = system.config.get().timeToEnd;
         return system;
     }
 
     pub fn deinit(_: *Self) void {}
 
     pub fn update(self: *Self, dt: f32) !void {
-        try self.checkTimerConfig();
+        const config = self.checkTimerConfig();
         if (self.timePassed.tick(dt)) {
             log.debug("TIME IS UP", .{});
             self.ecs.getSystem(GameScoreSystem).?.finish();
         }
 
-        self.drawClock();
+        self.drawClock(config);
     }
 
-    fn drawClock(self: *Self) void {
-        const pos = self.config.position;
+    fn drawClock(self: *Self, config: ClockConfig) void {
+        const pos = config.position;
         const rotation = self.timePassed.progress() * 360.0;
         const hand = self.clockHandTex.asset.Texture;
         const t = self.timePassed.progress();
-        var size = self.config.size;
+        var size = config.size;
         var handSize = size;
 
-        if (t < 1 and t > self.config.startStress) {
+        if (t < 1 and t > config.startStress) {
             const m = std.math;
             handSize = m.clamp(
-                m.fabs(m.cos(t * self.config.stressFreq)) * self.config.handSizeMax,
+                m.fabs(m.cos(t * config.stressFreq)) * config.handSizeMax,
                 handSize,
-                self.config.handSizeMax,
+                config.handSizeMax,
             );
         } else if (t >= 1) {
-            handSize = self.config.handSizeMax;
+            handSize = config.handSizeMax;
         }
 
         const handTint = if (t < 0.33)
@@ -110,15 +110,14 @@ pub const ClockSystem = struct {
         );
     }
 
-    fn checkTimerConfig(self: *Self) !void {
-        const needsUpdate = try self.configLink.check();
+    fn checkTimerConfig(self: *Self) ClockConfig {
+        const config = self.config.get();
+        const needsUpdate = self.configModTime != self.config.modTime;
+        defer self.configModTime = self.configModTime;
         if (needsUpdate) {
-            self.config = self.configLink.asset.Json.as(ClockConfig) catch |err| {
-                log.err("cannot load clock config: {?}", .{err});
-                return;
-            };
-            self.timePassed.time = self.config.timeToEnd;
+            self.timePassed.time = config.timeToEnd;
             self.timePassed.reset();
         }
+        return config;
     }
 };
