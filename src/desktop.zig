@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const zecsi = @import("zecsi/main.zig");
 const Allocator = std.mem.Allocator;
 const game = zecsi.game;
@@ -53,7 +54,7 @@ pub fn main() anyerror!void {
         game.deinit();
     }
 
-    if (@import("builtin").mode == .Debug) r.SetWindowPosition(500, -1000);
+    if (builtin.mode == .Debug and builtin.os.tag == .macos) r.SetWindowPosition(500, -1000);
     try myGame.start(game.getECS());
 
     r.SetTargetFPS(60);
