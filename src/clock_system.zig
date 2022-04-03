@@ -8,6 +8,7 @@ const Timer = zecsi.utils.Timer;
 const CameraSystem = zecsi.baseSystems.CameraSystem;
 const AssetSystem = zecsi.baseSystems.AssetSystem;
 const AssetLink = zecsi.assets.AssetLink;
+const GameScoreSystem = @import("game_score_system.zig").GameScoreSystem;
 const r = zecsi.raylib;
 const drawTexture = @import("utils.zig").drawTexture;
 
@@ -48,6 +49,7 @@ pub const ClockSystem = struct {
         try self.checkTimerConfig();
         if (self.timePassed.tick(dt)) {
             log.debug("TIME IS UP", .{});
+            self.ecs.getSystem(GameScoreSystem).?.finish();
         }
 
         self.drawClock();

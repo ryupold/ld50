@@ -11,13 +11,18 @@ const AssetLink = zecsi.assets.AssetLink;
 const r = zecsi.raylib;
 
 pub const GameScoreSystem = struct {
+    const Self = @This();
     ecs: *ECS,
 
-    pub fn init(ecs: *ECS) !@This() {
-        return @This(){ .ecs = ecs };
+    pub fn init(ecs: *ECS) !Self {
+        return Self{ .ecs = ecs };
     }
 
-    pub fn deinit(_: *@This()) void {}
+    pub fn deinit(_: *Self) void {}
 
-    pub fn update(_: *@This(), _: f32) !void {}
+    pub fn update(_: *Self, _: f32) !void {}
+
+    pub fn finish(_: *Self) void {
+        log.info("GAME OVER", .{});
+    }
 };
