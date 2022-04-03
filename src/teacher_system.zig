@@ -11,6 +11,7 @@ const GridPosition = zecsi.baseSystems.GridPosition;
 const GridPlacementSystem = zecsi.baseSystems.GridPlacementSystem;
 const ClassRoomSystem = @import("class_room_system.zig").ClassRoomSystem;
 const PlayerSystem = @import("player_system.zig").PlayerSystem;
+const Player = @import("player_system.zig").Player;
 const move = @import("movement_system.zig");
 const MovementSystem = move.MovementSystem;
 const AssetLink = zecsi.assets.AssetLink;
@@ -50,7 +51,8 @@ pub const Teacher = struct {
     cone: TeacherCone = .{},
     looking: LookDirection = .down,
     nextCell: ?GridPosition = null,
-    thinking: Timer = .{ .repeat = true, .time = 1 },
+    thinking: Timer = .{ .repeat = true, .time = 3 },
+    steps: u32 = 0,
 };
 
 pub const TeacherSystem = struct {
@@ -94,6 +96,7 @@ pub const TeacherSystem = struct {
         }
 
         if (teacher.thinking.tick(dt) and teacher.alertness == 0) {
+            teacher.steps += 1;
             const gridPos = mover.currentPos(self.grid);
             mover.target = self.findNextFreeCell(gridPos, 4);
             if (mover.target) |target| {
@@ -118,8 +121,9 @@ pub const TeacherSystem = struct {
         var teacher: *Teacher = self.ecs.getOnePtr(self.teacher, Teacher).?;
         var teacherMover: *move.GridMover = self.ecs.getOnePtr(self.teacher, move.GridMover).?;
         const player: *move.GridMover = self.ecs.getOnePtr(self.playerSystem.player, move.GridMover).?;
+        const playerMeta: *Player = self.ecs.getOnePtr(self.playerSystem.player, Player).?;
 
-        const seesPlayer = teacher.cone.sees(
+        const seesPlayer = !playerMeta.isAtHisDesk and teacher.cone.sees(
             teacherMover.currentWorldPos,
             player.currentWorldPos,
         );

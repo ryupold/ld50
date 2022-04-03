@@ -9,11 +9,16 @@ const CameraSystem = zecsi.baseSystems.CameraSystem;
 const AssetSystem = zecsi.baseSystems.AssetSystem;
 const GridPosition = zecsi.baseSystems.GridPosition;
 const GridPlacementSystem = zecsi.baseSystems.GridPlacementSystem;
+const playerSystem = @import("player_system.zig");
+const GridMover = @import("movement_system.zig").GridMover;
 const AssetLink = zecsi.assets.AssetLink;
 const JsonObject = zecsi.assets.JsonObject;
 const r = zecsi.raylib;
 const drawTexture = @import("utils.zig").drawTexture;
 const drawTextureOrigin = @import("utils.zig").drawTextureOrigin;
+
+var random = std.rand.DefaultPrng.init(1337);
+const rng = random.random();
 
 pub const StudentTable = struct {
     area: r.RectangleI,
@@ -44,12 +49,17 @@ pub const ClassRoomSystem = struct {
     groudTex: *AssetLink,
     wallTex: *AssetLink,
     blackboardTex: *AssetLink,
-    studentTableTex: *AssetLink,
+    studentTableAtlas: *AssetLink,
+    studentAtlas: *AssetLink,
 
     hideGround: bool = false,
     drawDebug: bool = false,
     roomConfigModTime: i128 = -1,
     roomConfig: JsonObject(RoomConfig),
+    ///set by PlayerSystem
+    player: EntityID = undefined,
+
+    playerTable: EntityID = 0,
 
     pub fn init(ecs: *ECS) !@This() {
         const ass = ecs.getSystem(AssetSystem).?;
@@ -62,7 +72,8 @@ pub const ClassRoomSystem = struct {
             .groudTex = try ass.loadTexture("assets/images/class/ground.png"),
             .wallTex = try ass.loadTexture("assets/images/class/wall.png"),
             .blackboardTex = try ass.loadTexture("assets/images/class/blackboard.png"),
-            .studentTableTex = try ass.loadTexture("assets/images/class/student_table_and_chair.png"),
+            .studentTableAtlas = try ass.loadTextureAtlas("assets/images/class/student_table_and_chair.png", 5, 1),
+            .studentAtlas = try ass.loadTextureAtlas("assets/images/class/student.png", 4, 2),
             .roomConfig = try ass.loadJsonObject(RoomConfig, "assets/data/room_config.json"),
         };
 
@@ -105,6 +116,12 @@ pub const ClassRoomSystem = struct {
         try self.clearGrid();
 
         try self.addStudentTables(config);
+        const playerTable: *StudentTable = self.ecs.getOnePtr(self.playerTable, StudentTable).?;
+        const player = self.ecs.getSystem(playerSystem.PlayerSystem).?.player;
+        var playerMover: *GridMover = self.ecs.getOnePtr(player, GridMover).?;
+        playerMover.currentWorldPos = self.grid.toWorldPosition(
+            .{ .x = playerTable.area.x, .y = playerTable.area.y + 1 },
+        );
 
         try self.addWalls(config);
     }
@@ -112,6 +129,8 @@ pub const ClassRoomSystem = struct {
     ///populate grid with entities{StudentTable}
     fn addStudentTables(self: *@This(), config: RoomConfig) !void {
         const tables = config.studentTables;
+        var isPlayerTableSet = false;
+        var lastTable: EntityID = 0;
         var y: i32 = tables.area.y;
         while (y < tables.area.height - tables.tableArea.y) : (y += tables.tableArea.y + tables.margin.y) {
             var x: i32 = tables.area.x;
@@ -125,6 +144,11 @@ pub const ClassRoomSystem = struct {
                     },
                 };
                 var e = try self.ecs.create(.{table});
+                if (rng.boolean()) {
+                    self.playerTable = e.id;
+                    isPlayerTableSet = true;
+                }
+                lastTable = e.id;
                 try self.putEntityOnGridArea(e.id, .{
                     .x = table.area.x,
                     .y = table.area.y,
@@ -132,6 +156,10 @@ pub const ClassRoomSystem = struct {
                     .height = table.area.height - 1, //Make table collider 1 cell smaller so the player can walk up to another student
                 });
             }
+        }
+
+        if (!isPlayerTableSet) {
+            self.playerTable = lastTable;
         }
     }
 
@@ -168,9 +196,10 @@ pub const ClassRoomSystem = struct {
     }
 
     pub fn drawStudentChairs(self: *@This(), _: RoomConfig) !void {
-        const tex = self.studentTableTex.asset.Texture;
+        const atlas = self.studentTableAtlas.asset.TextureAtlas;
+        var studentIndex: u32 = 0;
         var it = self.ecs.query(.{StudentTable});
-        while (it.next()) |e| {
+        while (it.next()) |e| : (studentIndex += 1) {
             const table: *StudentTable = e.getData(self.ecs, StudentTable).?;
             std.debug.assert(table.area.y <= table.area.y + table.area.height);
             std.debug.assert(table.area.x <= table.area.x + table.area.width);
@@ -179,13 +208,44 @@ pub const ClassRoomSystem = struct {
             const w = self.grid.toWorldLen(table.area.width);
             const h = self.grid.toWorldLen(table.area.height);
 
-            // draw table texture
-            drawTextureOrigin(tex, .{
-                .x = pos.x,
-                .y = pos.y,
-                .width = w,
-                .height = h,
-            }, r.Vector2.zero());
+            // draw player table
+            if (e.id == self.playerTable) {
+                const player: *playerSystem.Player = self.ecs.getOnePtr(self.player, playerSystem.Player).?;
+                atlas.draw(
+                    if (player.isAtHisDesk) 1 else 0,
+                    0,
+                    .{
+                        .x = pos.x,
+                        .y = pos.y,
+                        .width = w,
+                        .height = h,
+                    },
+                    r.Vector2.zero(),
+                    0,
+                    r.WHITE,
+                );
+            } else {
+                // draw student table
+                atlas.draw(
+                    std.math.clamp(studentIndex % 3 + 2, 2, 4),
+                    0,
+                    .{
+                        .x = pos.x,
+                        .y = pos.y,
+                        .width = w,
+                        .height = h,
+                    },
+                    r.Vector2.zero(),
+                    0,
+                    r.WHITE,
+                );
+                //draw student
+                self.studentAtlas.asset.TextureAtlas.drawEasy(
+                    studentIndex % 8,
+                    pos.add(.{ .x = w / 2, .y = h / 2 }),
+                    .{ .x = w, .y = h },
+                );
+            }
         }
     }
 
