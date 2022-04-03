@@ -52,14 +52,46 @@ pub const MovementSystem = struct {
                     log.debug("target {?} reached at {?}", .{ mover.target, mover.currentWorldPos });
                     mover.target = null;
                 } else {
+                    const currentPos = mover.currentPos(self.grid);
+                    var direction = targetF32.sub(mover.currentWorldPos).normalize();
+                    var nextCell: GridPosition = self.grid.toGridPosition(
+                        mover.currentWorldPos.add(direction.scale(self.grid.cellSize())),
+                    );
+                    const cellDelta = nextCell.sub(currentPos);
+                    nextCell = self.findFreeNextCell(currentPos, cellDelta);
+
+                    direction = self.grid.toWorldPosition(nextCell).sub(mover.currentWorldPos).normalize();
+
                     mover.currentWorldPos = mover.currentWorldPos
                         .add(
-                        targetF32
-                            .sub(mover.currentWorldPos)
-                            .normalize().scale(std.math.min(dt * mover.speed, distance)),
+                        direction.scale(std.math.min(dt * mover.speed, distance)),
                     );
                 }
             }
         }
+    }
+
+    /// not gonna lie, but this is the weirdest path finding i ever implemented but it kinda works
+    fn findFreeNextCell(self: *Self, currentPos: GridPosition, delta: GridPosition) GridPosition {
+        var fixedDelta = delta;
+
+        if (self.class.roomGrid.contains(currentPos.add(fixedDelta))) {
+            fixedDelta = .{ .x = delta.x, .y = 0 };
+        }
+        if (self.class.roomGrid.contains(currentPos.add(fixedDelta))) {
+            fixedDelta = .{ .x = 0, .y = delta.y };
+            if (fixedDelta.eql(.{ .x = 0, .y = 0 }))
+                fixedDelta = .{ .x = 0, .y = delta.x };
+        }
+        if (self.class.roomGrid.contains(currentPos.add(fixedDelta))) {
+            fixedDelta = .{ .x = delta.x, .y = 0 };
+            if (fixedDelta.eql(.{ .x = 0, .y = 0 }))
+                fixedDelta = .{ .x = delta.y, .y = 0 };
+        }
+        if (self.class.roomGrid.contains(currentPos.add(fixedDelta))) {
+            // log.debug("cannot go further (staying in {?})", .{currentPos});
+            return currentPos;
+        }
+        return currentPos.add(fixedDelta);
     }
 };

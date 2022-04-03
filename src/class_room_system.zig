@@ -120,7 +120,12 @@ pub const ClassRoomSystem = struct {
                     },
                 };
                 var e = try self.ecs.create(.{table});
-                try self.putEntityOnGridArea(e.id, table.area);
+                try self.putEntityOnGridArea(e.id, .{
+                    .x = table.area.x,
+                    .y = table.area.y,
+                    .width = table.area.width,
+                    .height = table.area.height - 1, //Make table collider 1 cell smaller so the player can walk up to another student
+                });
             }
         }
     }

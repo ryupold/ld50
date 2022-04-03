@@ -63,7 +63,7 @@ pub const PlayerSystem = struct {
             var mover: *move.GridMover = self.ecs.getOnePtr(self.player, move.GridMover).?;
             const clickPos = self.ecs.getSystem(CameraSystem).?.screenToWorld(target);
             mover.target = self.grid.toGridPosition(clickPos);
-            log.debug("MOVER, goto: {?}", .{mover.target});
+            // log.debug("MOVER, goto: {?}", .{mover.target});
         }
 
         self.previousTouchCount = r.GetTouchPointCount();
