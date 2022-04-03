@@ -190,9 +190,9 @@ pub const TeacherSystem = struct {
 
         drawTexture(self.teacherTex.asset.Texture, .{
             .x = mover.currentWorldPos.x,
-            .y = mover.currentWorldPos.y,
+            .y = mover.currentWorldPos.y - cs/2,
             .width = cs,
-            .height = cs,
+            .height = cs * 1.5,
         });
     }
 

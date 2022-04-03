@@ -25,6 +25,7 @@ pub const StudentTable = struct {
 };
 
 pub const RoomConfig = struct {
+    plantRect: r.Rectangle,
     blackboardRect: r.Rectangle,
     studentTables: struct {
         area: struct {
@@ -49,8 +50,11 @@ pub const ClassRoomSystem = struct {
     groudTex: *AssetLink,
     wallTex: *AssetLink,
     blackboardTex: *AssetLink,
+    plantTex: *AssetLink,
+    playerSitting: *AssetLink,
     studentTableAtlas: *AssetLink,
     studentAtlas: *AssetLink,
+    paperAtlas: *AssetLink,
 
     hideGround: bool = false,
     drawDebug: bool = false,
@@ -72,8 +76,11 @@ pub const ClassRoomSystem = struct {
             .groudTex = try ass.loadTexture("assets/images/class/ground.png"),
             .wallTex = try ass.loadTexture("assets/images/class/wall.png"),
             .blackboardTex = try ass.loadTexture("assets/images/class/blackboard.png"),
+            .plantTex = try ass.loadTexture("assets/images/class/plant.png"),
+            .playerSitting = try ass.loadTexture("assets/images/class/player_sitting.png"),
             .studentTableAtlas = try ass.loadTextureAtlas("assets/images/class/student_table_and_chair.png", 5, 1),
             .studentAtlas = try ass.loadTextureAtlas("assets/images/class/student.png", 4, 2),
+            .paperAtlas = try ass.loadTextureAtlas("assets/images/class/paper.png", 4, 1),
             .roomConfig = try ass.loadJsonObject(RoomConfig, "assets/data/room_config.json"),
         };
 
@@ -93,6 +100,7 @@ pub const ClassRoomSystem = struct {
 
         if (!self.hideGround) try self.drawBaseRoom();
         try self.drawBlackboard(config);
+        try self.drawPlant(config);
         try self.drawStudentChairs(config);
         if (self.drawDebug) self.drawDebugRects();
 
@@ -211,8 +219,9 @@ pub const ClassRoomSystem = struct {
             // draw player table
             if (e.id == self.playerTable) {
                 const player: *playerSystem.Player = self.ecs.getOnePtr(self.player, playerSystem.Player).?;
+                //draw player table
                 atlas.draw(
-                    if (player.isAtHisDesk) 1 else 0,
+                    0,
                     0,
                     .{
                         .x = pos.x,
@@ -224,10 +233,49 @@ pub const ClassRoomSystem = struct {
                     0,
                     r.WHITE,
                 );
+
+                //draw player paper
+                self.paperAtlas.asset.TextureAtlas.draw(
+                    std.math.clamp(0, 0, 3),
+                    0,
+                    .{
+                        .x = pos.x,
+                        .y = pos.y,
+                        .width = w,
+                        .height = h,
+                    },
+                    r.Vector2.zero(),
+                    0,
+                    r.WHITE,
+                );
+
+                if (player.isAtHisDesk) {
+                    // draw sitting player
+                    drawTextureOrigin(self.playerSitting.asset.Texture, .{
+                        .x = pos.x,
+                        .y = pos.y,
+                        .width = w,
+                        .height = h,
+                    }, .{ .x = 0, .y = 0 });
+                }
             } else {
                 // draw student table
                 atlas.draw(
                     std.math.clamp(studentIndex % 3 + 2, 2, 4),
+                    0,
+                    .{
+                        .x = pos.x,
+                        .y = pos.y,
+                        .width = w,
+                        .height = h,
+                    },
+                    r.Vector2.zero(),
+                    0,
+                    r.WHITE,
+                );
+                // draw paper
+                self.paperAtlas.asset.TextureAtlas.draw(
+                    std.math.clamp(studentIndex % 3, 0, 3),
                     0,
                     .{
                         .x = pos.x,
@@ -274,6 +322,11 @@ pub const ClassRoomSystem = struct {
     pub fn drawBlackboard(self: *@This(), config: RoomConfig) !void {
         const tex = self.blackboardTex.asset.Texture;
         drawTexture(tex, config.blackboardRect);
+    }
+
+    pub fn drawPlant(self: *@This(), config: RoomConfig) !void {
+        const tex = self.plantTex.asset.Texture;
+        drawTexture(tex, config.plantRect);
     }
 
     pub fn drawBaseRoom(self: *@This()) !void {
