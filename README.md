@@ -1,7 +1,5 @@
 # LD #50 - Delay the inevitable
 
-## Work in progress...
-
 ## Event Details
 - Theme: **Delay the inevitable**
 - Saturday April 2nd to Tuesday April 5th, 2022
