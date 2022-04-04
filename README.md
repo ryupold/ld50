@@ -7,6 +7,7 @@
 - Saturday April 2nd to Tuesday April 5th, 2022
 Starts at 3:00 AM CEST *
 
+You are a student in a class room. Today is exam day but you didn't learn at all. So you need to get the test answers by silently asking other students, read the notes of the teacher, etc. while he is patrolling the room.
 
 Made with [zecsi](https://github.com/ryupold/zecsi).
 
