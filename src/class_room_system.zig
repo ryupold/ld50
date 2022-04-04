@@ -110,11 +110,6 @@ pub const ClassRoomSystem = struct {
         if (r.IsKeyReleased(r.KEY_C)) {
             self.drawDebug = !self.drawDebug;
         }
-
-        // if (r.IsMouseButtonReleased(0)) {
-        //     const wpos = self.camera.screenToWorld(r.GetMousePosition());
-        //     log.debug("click on {?}", .{self.grid.toGridPosition(wpos)});
-        // }
     }
 
     /// assuming that the config was loaded
@@ -235,8 +230,10 @@ pub const ClassRoomSystem = struct {
                 );
 
                 //draw player paper
+                const writtenDown = @intToFloat(f32, player.solutionsWrittenDown);
+                const questionCount = @intToFloat(f32, playerSystem.questionCount);
                 self.paperAtlas.asset.TextureAtlas.draw(
-                    std.math.clamp(0, 0, 3),
+                    std.math.clamp(@floatToInt(u32, writtenDown / questionCount * 3 + 0.5), 0, 3),
                     0,
                     .{
                         .x = pos.x,
@@ -248,6 +245,11 @@ pub const ClassRoomSystem = struct {
                     0,
                     r.WHITE,
                 );
+
+                const screenPos = pos.int();
+                var buf: [20]u8 = undefined;
+                const progressText = try std.fmt.bufPrintZ(&buf, "{d}/{d}", .{ player.solutionsWrittenDown, playerSystem.questionCount });
+                r.DrawText(progressText, screenPos.x + @floatToInt(i32, w / 4), screenPos.y-20, 20, r.BLACK);
 
                 if (player.isAtHisDesk) {
                     // draw sitting player
