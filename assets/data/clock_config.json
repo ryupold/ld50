@@ -4,5 +4,5 @@
   "handSizeMax": 75,
   "startStress": 0.75,
   "stressFreq": 100,
-  "timeToEnd": 180
+  "timeToEnd": 100
 }

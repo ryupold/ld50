@@ -30,6 +30,7 @@ pub const GameScoreSystem = struct {
     pub fn deinit(_: *Self) void {}
 
     pub fn finish(self: *Self, ending: Ending) void {
+        if (self.gameOver) return;
         log.info("GAME OVER", .{});
         self.gameOver = true;
         const p = self.ecs.getSystem(player.PlayerSystem).?.player;
