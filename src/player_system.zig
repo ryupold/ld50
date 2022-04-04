@@ -57,6 +57,9 @@ pub const PlayerSystem = struct {
 
     pub fn resetSystem(self: *Self) !void {
         self.ecs.getOnePtr(self.player, Player).?.* = .{};
+        for(self.gatheredSolutionsFrom) |_, i| {
+            self.gatheredSolutionsFrom[i] = false;
+        }
     }
 
     pub fn deinit(_: *Self) void {}
