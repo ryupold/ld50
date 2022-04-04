@@ -45,11 +45,14 @@ pub const ClockSystem = struct {
 
     pub fn deinit(_: *Self) void {}
 
+    pub fn resetSystem(self: *@This()) !void {
+        self.timePassed.reset();
+    }
+
     pub fn update(self: *Self, dt: f32) !void {
         const config = self.checkTimerConfig();
         if (self.timePassed.tick(dt)) {
-            log.debug("TIME IS UP", .{});
-            self.ecs.getSystem(GameScoreSystem).?.finish();
+            self.ecs.getSystem(GameScoreSystem).?.finish(.timeIsUp);
         }
 
         self.drawClock(config);

@@ -19,7 +19,7 @@ const r = zecsi.raylib;
 const drawTexture = @import("utils.zig").drawTexture;
 const drawTextureOrigin = @import("utils.zig").drawTextureOrigin;
 
-pub const questionCount: u32 = 10;
+pub const questionCount: u32 = 7;
 
 pub const Player = struct {
     gatheringInfo: Timer = .{ .repeat = false, .time = 5 },
@@ -34,6 +34,7 @@ pub const PlayerSystem = struct {
     grid: *GridPlacementSystem,
     class: *ClassRoomSystem,
     playerTex: *AssetLink,
+    gatheredSolutionsFrom: [1000]bool = [_]bool{false} ** 1000,
     player: EntityID,
 
     pub fn init(ecs: *ECS) !Self {
@@ -52,6 +53,10 @@ pub const PlayerSystem = struct {
         _ = try ecs.add(system.player, move.GridMover{ .currentWorldPos = r.Vector2.zero() });
 
         return system;
+    }
+
+    pub fn resetSystem(self: *Self) !void {
+        self.ecs.getOnePtr(self.player, Player).?.* = .{};
     }
 
     pub fn deinit(_: *Self) void {}
@@ -78,15 +83,19 @@ pub const PlayerSystem = struct {
                 player.solutionsWrittenDown += player.solutionsGathered;
                 player.solutionsGathered = 0;
                 log.debug("Written down: {d}", .{player.solutionsWrittenDown});
+                if (player.solutionsWrittenDown == questionCount) {
+                    self.ecs.getSystem(@import("game_score_system.zig").GameScoreSystem).?.finish(.complete);
+                }
             }
         } else {
             player.isAtHisDesk = false;
             self.drawPlayer();
 
             const isAtStudentsTable = self.class.isAtStudentsTable(mover.currentPos(self.grid));
-            if (isAtStudentsTable and (player.solutionsGathered + player.solutionsWrittenDown) < questionCount) {
+            if (isAtStudentsTable != null and !self.gatheredSolutionsFrom[isAtStudentsTable.?] and (player.solutionsGathered + player.solutionsWrittenDown) < questionCount) {
                 if (player.gatheringInfo.tick(dt)) {
                     player.solutionsGathered = std.math.clamp(player.solutionsGathered + 1, 0, questionCount - player.solutionsWrittenDown);
+                    self.gatheredSolutionsFrom[isAtStudentsTable.?] = true;
                     player.gatheringInfo.reset();
                     log.debug("Solutions gathered: {d}", .{player.solutionsGathered});
                 }

@@ -91,6 +91,11 @@ pub const ClassRoomSystem = struct {
         self.roomGrid.deinit();
     }
 
+    pub fn resetSystem(self: *@This()) !void {
+        const config = self.roomConfig.get();
+        try self.reinitRoom(config);
+    }
+
     pub fn update(self: *@This(), _: f32) !void {
         const config = self.roomConfig.get();
         if (self.roomConfigModTime != self.roomConfig.modTime) {
@@ -249,7 +254,7 @@ pub const ClassRoomSystem = struct {
                 const screenPos = pos.int();
                 var buf: [20]u8 = undefined;
                 const progressText = try std.fmt.bufPrintZ(&buf, "{d}/{d}", .{ player.solutionsWrittenDown, playerSystem.questionCount });
-                r.DrawText(progressText, screenPos.x + @floatToInt(i32, w / 4), screenPos.y-20, 20, r.BLACK);
+                r.DrawText(progressText, screenPos.x + @floatToInt(i32, w / 4), screenPos.y - 20, 20, r.BLACK);
 
                 if (player.isAtHisDesk) {
                     // draw sitting player
@@ -331,9 +336,10 @@ pub const ClassRoomSystem = struct {
         drawTexture(tex, config.plantRect);
     }
 
-    pub fn isAtStudentsTable(self: *@This(), pos: GridPosition) bool {
+    pub fn isAtStudentsTable(self: *@This(), pos: GridPosition) ?usize {
+        var i: usize = 0;
         var it = self.ecs.query(.{StudentTable});
-        while (it.next()) |e| {
+        while (it.next()) |e| : (i += 1) {
             if (e.id == self.playerTable) continue;
             const studentTable = e.getData(self.ecs, StudentTable).?;
             if (pos.eql(.{
@@ -343,10 +349,10 @@ pub const ClassRoomSystem = struct {
                 .x = studentTable.area.x + studentTable.area.width - 1,
                 .y = studentTable.area.y + studentTable.area.height - 1,
             })) {
-                return true;
+                return i;
             }
         }
-        return false;
+        return null;
     }
 
     pub fn drawBaseRoom(self: *@This()) !void {

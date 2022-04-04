@@ -84,6 +84,10 @@ pub const TeacherSystem = struct {
 
     pub fn deinit(_: *Self) void {}
 
+    pub fn resetSystem(self: *Self) !void {
+        self.ecs.getOnePtr(self.teacher, Teacher).?.* = .{};
+    }
+
     pub fn update(self: *Self, dt: f32) !void {
         self.drawTeacher();
 
@@ -95,7 +99,7 @@ pub const TeacherSystem = struct {
             mover.target = null;
         }
 
-        if (teacher.thinking.tick(dt) and teacher.alertness == 0) {
+        if (teacher.alertness == 0 and teacher.thinking.tick(dt)) {
             teacher.steps += 1;
             const gridPos = mover.currentPos(self.grid);
             mover.target = self.findNextFreeCell(gridPos, 4);
@@ -115,6 +119,11 @@ pub const TeacherSystem = struct {
         }
 
         self.updateTeacherCone();
+
+        if (teacher.alertness >= 1) {
+            self.ecs.getSystem(@import("game_score_system.zig").GameScoreSystem).?.finish(.disqualified);
+            return;
+        }
     }
 
     fn detectPlayer(self: *Self, dt: f32) bool {
@@ -190,7 +199,7 @@ pub const TeacherSystem = struct {
 
         drawTexture(self.teacherTex.asset.Texture, .{
             .x = mover.currentWorldPos.x,
-            .y = mover.currentWorldPos.y - cs/2,
+            .y = mover.currentWorldPos.y - cs / 2,
             .width = cs,
             .height = cs * 1.5,
         });
