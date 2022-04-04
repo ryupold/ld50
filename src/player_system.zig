@@ -19,9 +19,13 @@ const r = zecsi.raylib;
 const drawTexture = @import("utils.zig").drawTexture;
 const drawTextureOrigin = @import("utils.zig").drawTextureOrigin;
 
+pub const questionCount: u32 = 10;
+
 pub const Player = struct {
+    gatheringInfo: Timer = .{ .repeat = false, .time = 5 },
     isAtHisDesk: bool = true,
     solutionsGathered: u32 = 0,
+    solutionsWrittenDown: u32 = 0,
 };
 
 pub const PlayerSystem = struct {
@@ -52,7 +56,7 @@ pub const PlayerSystem = struct {
 
     pub fn deinit(_: *Self) void {}
 
-    pub fn update(self: *Self, _: f32) !void {
+    pub fn update(self: *Self, dt: f32) !void {
         const goto: ?r.Vector2 =
             if (r.IsMouseButtonDown(0))
             r.GetMousePosition()
@@ -67,6 +71,56 @@ pub const PlayerSystem = struct {
             const clickPos = self.ecs.getSystem(CameraSystem).?.screenToWorld(target);
             mover.target = self.grid.toGridPosition(clickPos);
         }
+
+        if (self.isPlayerAtHisTable()) {
+            player.isAtHisDesk = true;
+            if (player.solutionsGathered > 0) {
+                player.solutionsWrittenDown += player.solutionsGathered;
+                player.solutionsGathered = 0;
+                log.debug("Written down: {d}", .{player.solutionsWrittenDown});
+            }
+        } else {
+            player.isAtHisDesk = false;
+            self.drawPlayer();
+
+            const isAtStudentsTable = self.class.isAtStudentsTable(mover.currentPos(self.grid));
+            if (isAtStudentsTable and (player.solutionsGathered + player.solutionsWrittenDown) < questionCount) {
+                if (player.gatheringInfo.tick(dt)) {
+                    player.solutionsGathered = std.math.clamp(player.solutionsGathered + 1, 0, questionCount - player.solutionsWrittenDown);
+                    player.gatheringInfo.reset();
+                    log.debug("Solutions gathered: {d}", .{player.solutionsGathered});
+                }
+                self.drawGatherInfoProgressbar(mover.currentWorldPos, player.gatheringInfo.progress());
+            }
+        }
+    }
+
+    fn drawGatherInfoProgressbar(_: *Self, playerPos: r.Vector2, progress: f32) void {
+        const w: f32 = 30;
+        const h: f32 = 15;
+        _ = progress;
+
+        r.DrawRectanglePro(.{
+            .x = playerPos.x,
+            .y = playerPos.y,
+            .width = w,
+            .height = h,
+        }, r.Vector2{ .x = w / 2, .y = h * 4 }, 0, r.BLUE.set(.{ .a = 80 }));
+        r.DrawRectanglePro(
+            .{
+                .x = playerPos.x,
+                .y = playerPos.y,
+                .width = w * progress,
+                .height = h,
+            },
+            r.Vector2{ .x = w / 2, .y = h * 4 },
+            0,
+            r.YELLOW.set(.{ .a = 100 + @floatToInt(u8, progress * 100) }),
+        );
+    }
+
+    fn isPlayerAtHisTable(self: *Self) bool {
+        var mover: *move.GridMover = self.ecs.getOnePtr(self.player, move.GridMover).?;
         const playerTable: *classRoom.StudentTable = self.ecs.getOnePtr(self.class.playerTable, classRoom.StudentTable).?;
         if (mover.currentPos(self.grid).eql(.{
             .x = playerTable.area.x,
@@ -75,12 +129,9 @@ pub const PlayerSystem = struct {
             .x = playerTable.area.x + playerTable.area.width - 1,
             .y = playerTable.area.y + playerTable.area.height - 1,
         })) {
-            // mover.currentWorldPos = self.grid.toWorldPosition(.{ .x = playerTable.area.x, .y = playerTable.area.y + 1 });
-            player.isAtHisDesk = true;
-        } else {
-            player.isAtHisDesk = false;
-            self.drawPlayer();
+            return true;
         }
+        return false;
     }
 
     fn drawPlayer(self: *Self) void {

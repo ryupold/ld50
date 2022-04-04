@@ -111,7 +111,7 @@ pub const TeacherSystem = struct {
                     teacher.looking = .down;
                 }
             }
-            log.debug("TEACHER, goto: {?}", .{teacher.looking});
+            // log.debug("TEACHER, goto: {?}", .{teacher.looking});
         }
 
         self.updateTeacherCone();

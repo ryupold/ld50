@@ -111,10 +111,10 @@ pub const ClassRoomSystem = struct {
             self.drawDebug = !self.drawDebug;
         }
 
-        if (r.IsMouseButtonReleased(0)) {
-            const wpos = self.camera.screenToWorld(r.GetMousePosition());
-            log.debug("click on {?}", .{self.grid.toGridPosition(wpos)});
-        }
+        // if (r.IsMouseButtonReleased(0)) {
+        //     const wpos = self.camera.screenToWorld(r.GetMousePosition());
+        //     log.debug("click on {?}", .{self.grid.toGridPosition(wpos)});
+        // }
     }
 
     /// assuming that the config was loaded
@@ -329,6 +329,24 @@ pub const ClassRoomSystem = struct {
         drawTexture(tex, config.plantRect);
     }
 
+    pub fn isAtStudentsTable(self: *@This(), pos: GridPosition) bool {
+        var it = self.ecs.query(.{StudentTable});
+        while (it.next()) |e| {
+            if (e.id == self.playerTable) continue;
+            const studentTable = e.getData(self.ecs, StudentTable).?;
+            if (pos.eql(.{
+                .x = studentTable.area.x,
+                .y = studentTable.area.y + studentTable.area.height - 1,
+            }) or pos.eql(.{
+                .x = studentTable.area.x + studentTable.area.width - 1,
+                .y = studentTable.area.y + studentTable.area.height - 1,
+            })) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     pub fn drawBaseRoom(self: *@This()) !void {
         drawTexture(
             self.groudTex.asset.Texture,
@@ -364,6 +382,6 @@ pub const ClassRoomSystem = struct {
             }
         }
 
-        log.debug("put #{d} on {?} occupying {d} cells", .{ entity, area, count });
+        // log.debug("put #{d} on {?} occupying {d} cells", .{ entity, area, count });
     }
 };

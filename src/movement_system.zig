@@ -49,7 +49,7 @@ pub const MovementSystem = struct {
                 const targetF32 = self.grid.toWorldPosition(target);
                 const distance = mover.currentWorldPos.distanceTo(targetF32);
                 if (distance <= tolerance) {
-                    log.debug("target {?} reached at {?}", .{ mover.target, mover.currentWorldPos });
+                    // log.debug("target {?} reached at {?}", .{ mover.target, mover.currentWorldPos });
                     mover.target = null;
                 } else {
                     const currentPos = mover.currentPos(self.grid);
