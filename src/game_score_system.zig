@@ -1,5 +1,5 @@
 const std = @import("std");
-const zecsi = @import("zecsi/main.zig");
+const zecsi = @import("zecsi/zecsi.zig");
 const log = zecsi.log;
 const ECS = zecsi.ECS;
 const Entity = zecsi.Entity;
@@ -56,7 +56,7 @@ pub const GameScoreSystem = struct {
         if (self.gameOver) {
             r.ClearBackground(r.BLACK);
             r.DrawText(
-                &self.finishTextBuffer,
+                @ptrCast([*:0]const u8, &self.finishTextBuffer),
                 @floatToInt(i32, self.ecs.window.size.x / 2 - 200),
                 @floatToInt(i32, self.ecs.window.size.y / 2),
                 40,
@@ -72,7 +72,7 @@ pub const GameScoreSystem = struct {
             );
         }
 
-        if (r.IsKeyReleased(r.KEY_R_OR_KEY_MENU)) {
+        if (r.IsKeyReleased(.KEY_R)) {
             try self.ecs.getSystem(@import("player_system.zig").PlayerSystem).?.resetSystem();
             try self.ecs.getSystem(@import("teacher_system.zig").TeacherSystem).?.resetSystem();
             try self.ecs.getSystem(@import("class_room_system.zig").ClassRoomSystem).?.resetSystem();

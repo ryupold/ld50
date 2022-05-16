@@ -1,5 +1,5 @@
 const std = @import("std");
-const zecsi = @import("zecsi/main.zig");
+const zecsi = @import("zecsi/zecsi.zig");
 const log = zecsi.log;
 const ECS = zecsi.ECS;
 const Entity = zecsi.Entity;
@@ -66,7 +66,7 @@ pub const PlayerSystem = struct {
 
     pub fn update(self: *Self, dt: f32) !void {
         const goto: ?r.Vector2 =
-            if (r.IsMouseButtonDown(0))
+            if (r.IsMouseButtonDown(.MOUSE_BUTTON_LEFT))
             r.GetMousePosition()
         else if (r.GetTouchPointCount() == 1)
             r.GetTouchPosition(0)
@@ -149,7 +149,7 @@ pub const PlayerSystem = struct {
     fn drawPlayer(self: *Self) void {
         var mover: *move.GridMover = self.ecs.getOnePtr(self.player, move.GridMover).?;
         const cs = self.grid.cellSize();
-        drawTexture(self.playerTex.asset.Texture, .{
+        drawTexture(self.playerTex.asset.Texture2D, .{
             .x = mover.currentWorldPos.x,
             .y = mover.currentWorldPos.y - cs / 2,
             .width = cs * 1,

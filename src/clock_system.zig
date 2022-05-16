@@ -1,5 +1,5 @@
 const std = @import("std");
-const zecsi = @import("zecsi/main.zig");
+const zecsi = @import("zecsi/zecsi.zig");
 const log = zecsi.log;
 const ECS = zecsi.ECS;
 const Entity = zecsi.Entity;
@@ -61,7 +61,7 @@ pub const ClockSystem = struct {
     fn drawClock(self: *Self, config: ClockConfig) void {
         const pos = config.position;
         const rotation = self.timePassed.progress() * 360.0;
-        const hand = self.clockHandTex.asset.Texture;
+        const hand = self.clockHandTex.asset.Texture2D;
         const t = self.timePassed.progress();
         var size = config.size;
         var handSize = size;
@@ -90,7 +90,7 @@ pub const ClockSystem = struct {
             .width = size,
             .height = size,
         };
-        drawTexture(self.clockBgTex.asset.Texture, dest);
+        drawTexture(self.clockBgTex.asset.Texture2D, dest);
         const srcW = @intToFloat(f32, hand.width);
         const srcH = @intToFloat(f32, hand.height);
         r.DrawTexturePro(

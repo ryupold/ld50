@@ -1,5 +1,5 @@
 const std = @import("std");
-const zecsi = @import("zecsi/main.zig");
+const zecsi = @import("zecsi/zecsi.zig");
 const log = zecsi.log;
 const ECS = zecsi.ECS;
 const Entity = zecsi.Entity;
@@ -197,7 +197,7 @@ pub const TeacherSystem = struct {
             (r.YELLOW.set(.{ .a = 30 }).lerp(r.RED.set(.{ .a = 50 }), teacher.alertness)),
         );
 
-        drawTexture(self.teacherTex.asset.Texture, .{
+        drawTexture(self.teacherTex.asset.Texture2D, .{
             .x = mover.currentWorldPos.x,
             .y = mover.currentWorldPos.y - cs / 2,
             .width = cs,

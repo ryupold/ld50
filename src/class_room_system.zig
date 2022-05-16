@@ -1,5 +1,5 @@
 const std = @import("std");
-const zecsi = @import("zecsi/main.zig");
+const zecsi = @import("zecsi/zecsi.zig");
 const log = zecsi.log;
 const ECS = zecsi.ECS;
 const Entity = zecsi.Entity;
@@ -109,10 +109,10 @@ pub const ClassRoomSystem = struct {
         try self.drawStudentChairs(config);
         if (self.drawDebug) self.drawDebugRects();
 
-        if (r.IsKeyReleased(r.KEY_B)) {
+        if (r.IsKeyReleased(.KEY_B)) {
             self.hideGround = !self.hideGround;
         }
-        if (r.IsKeyReleased(r.KEY_C)) {
+        if (r.IsKeyReleased(.KEY_C)) {
             self.drawDebug = !self.drawDebug;
         }
     }
@@ -258,7 +258,7 @@ pub const ClassRoomSystem = struct {
 
                 if (player.isAtHisDesk) {
                     // draw sitting player
-                    drawTextureOrigin(self.playerSitting.asset.Texture, .{
+                    drawTextureOrigin(self.playerSitting.asset.Texture2D, .{
                         .x = pos.x,
                         .y = pos.y,
                         .width = w,
@@ -327,12 +327,12 @@ pub const ClassRoomSystem = struct {
     }
 
     pub fn drawBlackboard(self: *@This(), config: RoomConfig) !void {
-        const tex = self.blackboardTex.asset.Texture;
+        const tex = self.blackboardTex.asset.Texture2D;
         drawTexture(tex, config.blackboardRect);
     }
 
     pub fn drawPlant(self: *@This(), config: RoomConfig) !void {
-        const tex = self.plantTex.asset.Texture;
+        const tex = self.plantTex.asset.Texture2D;
         drawTexture(tex, config.plantRect);
     }
 
@@ -357,7 +357,7 @@ pub const ClassRoomSystem = struct {
 
     pub fn drawBaseRoom(self: *@This()) !void {
         drawTexture(
-            self.groudTex.asset.Texture,
+            self.groudTex.asset.Texture2D,
             r.Rectangle{
                 .x = 0,
                 .y = 0,
@@ -366,7 +366,7 @@ pub const ClassRoomSystem = struct {
             },
         );
         drawTexture(
-            self.wallTex.asset.Texture,
+            self.wallTex.asset.Texture2D,
             r.Rectangle{
                 .x = 0,
                 .y = 0,

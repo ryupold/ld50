@@ -1,5 +1,5 @@
 const builtin = @import("builtin");
-const zecsi = @import("zecsi/main.zig");
+const zecsi = @import("zecsi/zecsi.zig");
 const ECS = zecsi.ECS;
 const base = zecsi.baseSystems;
 const raylib = zecsi.raylib;
@@ -15,7 +15,7 @@ pub fn start(ecs: *ECS) !void {
     _ = try ecs.registerSystem(base.AssetSystem);
     _ = try ecs.registerSystem(base.GridPlacementSystem);
     var cameraSystem = try ecs.registerSystem(base.CameraSystem);
-    cameraSystem.initMouseDrag(base.CameraMouseDrag{ .button = 2 });
+    cameraSystem.initMouseDrag(base.CameraMouseDrag{ .button = .MOUSE_BUTTON_MIDDLE });
     cameraSystem.initMouseZoomScroll(base.CameraScrollZoom{ .factor = 0.1 });
     cameraSystem.initTouchZoomAndDrag(base.TwoFingerZoomAndDrag{ .factor = 0.5 });
     if(builtin.mode == .Debug) cameraSystem.initCameraWASD(.{});

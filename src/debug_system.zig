@@ -1,6 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const zecsi = @import("zecsi/main.zig");
+const zecsi = @import("zecsi/zecsi.zig");
 const log = zecsi.log;
 const ECS = zecsi.ECS;
 const Entity = zecsi.Entity;
@@ -22,7 +22,7 @@ pub const DebugSystem = struct {
     pub fn deinit(_: *@This()) void {}
 
     pub fn after(self: *@This(), _: f32) !void {
-        if (r.IsKeyReleased(r.KEY_F)) {
+        if (r.IsKeyReleased(.KEY_F)) {
             self.showFPS = !self.showFPS;
         }
 

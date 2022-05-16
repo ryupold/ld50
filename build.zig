@@ -3,7 +3,7 @@ const fs = std.fs;
 
 pub const APP_NAME = "tick-tack";
 
-const raylibSrc = "src/zecsi/raylib/src/";
+const raylibSrc = "src/zecsi/raylib/raylib/src/";
 const zesciSrc = "src/zecsi/";
 const webOutdir = "zig-out/web/";
 
@@ -23,11 +23,12 @@ pub fn build(b: *std.build.Builder) !void {
             std.log.info("building for emscripten\n", .{});
             if (b.sysroot == null) {
                 // std.log.err("Please build with 'zig build -Dtarget=wasm32-emscripten --sysroot [path/to/emsdk]/upstream/emscripten/cache/sysroot", .{});
-                std.log.err("Please build with 'zig build -Dtarget=wasm32-wasi --sysroot \"$EMSDK/upstream/emscripten\"", .{});
+                std.log.err("Please build with 'zig build -Drelease-small -Dtarget=wasm32-wasi --sysroot \"../emsdk/upstream/emscripten\"'", .{});
                 @panic("error.SysRootExpected");
             }
             const lib = b.addStaticLibrary(APP_NAME, "src/web.zig");
             lib.addIncludeDir(raylibSrc);
+            lib.addIncludeDir(zesciSrc ++ "raylib/");
 
             const outdir = webOutdir;
 
@@ -104,33 +105,32 @@ pub fn build(b: *std.build.Builder) !void {
             lib.defineCMacro("__EMSCRIPTEN__", "1");
             std.log.info("emscripten include path: {s}", .{include_path});
             lib.addIncludeDir(include_path);
-            lib.addIncludeDir(zesciSrc++"emscripten");
+            lib.addIncludeDir(zesciSrc ++ "emscripten");
             lib.addIncludeDir(raylibSrc);
 
             lib.setOutputDir(outdir);
             lib.install();
 
             const shell = switch (mode) {
-                .Debug => zesciSrc++"emscripten/shell.html",
-                else => zesciSrc++"emscripten/minshell.html",
+                .Debug => zesciSrc ++ "raylib/emscripten/shell.html",
+                else => zesciSrc ++ "raylib/emscripten/minshell.html",
             };
 
             const emcc = b.addSystemCommand(&.{
                 emcc_path,
                 "-o",
                 outdir ++ "game.html",
-                zesciSrc++"emscripten/entry.c",
-                zesciSrc++"emscripten/raylib_marshall.c",
-                zesciSrc++"emscripten/raylib_marshall_gen.c",
+                zesciSrc ++ "raylib/emscripten/entry.c",
+                zesciSrc ++ "raylib/marshal.c",
                 // outdir ++ "libraylib.a",
-                outdir ++ "lib"++APP_NAME++".a",
+                outdir ++ "lib" ++ APP_NAME ++ ".a",
                 "-I.",
                 "-I" ++ raylibSrc,
-                "-I" ++ zesciSrc ++ "emscripten/",
+                "-I" ++ zesciSrc ++ "raylib/",
                 "-L.",
                 "-L" ++ outdir,
                 "-lraylib",
-                "-l"++APP_NAME,
+                "-l" ++ APP_NAME,
                 "--shell-file",
                 shell,
                 "-DPLATFORM_WEB",
@@ -168,13 +168,12 @@ pub fn build(b: *std.build.Builder) !void {
             exe.setTarget(target);
             exe.setBuildMode(mode);
 
-            const rayBuild = @import("src/zecsi/raylib/src/build.zig");
+            const rayBuild = @import("src/zecsi/raylib/raylib/src/build.zig");
             const raylib = rayBuild.addRaylib(b, target);
             exe.linkLibrary(raylib);
-            exe.addIncludeDir("src/zecsi/raylib/src/");
-            exe.addIncludeDir("src/zecsi/emscripten/");
-            exe.addCSourceFile("src/zecsi/emscripten/raylib_marshall.c", &.{});
-            exe.addCSourceFile("src/zecsi/emscripten/raylib_marshall_gen.c", &.{});
+            exe.addIncludeDir(raylibSrc);
+            exe.addIncludeDir("src/zecsi/raylib/");
+            exe.addCSourceFile("src/zecsi/raylib/marshal.c", &.{});
 
             switch (raylib.target.getOsTag()) {
                 //dunno why but macos target needs sometimes 2 tries to build
@@ -202,7 +201,6 @@ pub fn build(b: *std.build.Builder) !void {
             run_step.dependOn(&run_cmd.step);
         },
     }
-
 
     const exe_tests = b.addTest("src/desktop.zig");
     exe_tests.setTarget(target);
